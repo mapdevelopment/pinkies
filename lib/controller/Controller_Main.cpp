@@ -16,6 +16,7 @@ float f_left = 0,
 Adafruit_VL53L1X* SENSORS[5];
 const int XSHUT_PINS[5] = { 2, 3, 4, 5, 6 };
 const byte SENSOR_ADDRESS[5] = { 0x32, 0x33, 0x34, 0x35, 0x36 };
+const int MEASUREMENT_ERROR[5] = { 10, 25, 0, -8, 0 };
 
 void load_sensors() {
     Wire.begin();
@@ -54,16 +55,17 @@ void read_sensor_data() {
         delay(50);
     }
 
-    front = distances[3] + 10;
-    f_left = distances[4] + 25;
-    f_right = distances[2];
-    b_left = distances[1] - 8;
-    b_right = distances[0];
+    front = distances[3] + MEASUREMENT_ERROR[0];
+    f_left = distances[4] + MEASUREMENT_ERROR[1];
+    f_right = distances[2] + MEASUREMENT_ERROR[2];
+    b_left = distances[1] + MEASUREMENT_ERROR[3];
+    b_right = distances[0] + MEASUREMENT_ERROR[4];
 
     // PID controller
     // We are calculating the angle to the outside wall.
-    // In the beginning we assume that the outside wall is in the left of the robot. However if left distance changes
-    // rapidly we start tracking the right side of the robot
+    // Initially, we assume the outside wall is on the left side of the robot.
+    // However, if the left distance changes rapidly, we start tracking the right side of the robot.
+
 
     float track_x1 = f_left;
     float track_x2 = b_left;
