@@ -20,6 +20,7 @@ const int MEASUREMENT_ERROR[5] = { 10, 25, 0, -8, 0 };
 
 void load_sensors() {
     Wire.begin();
+
     // Let's assign unique I2C address for each sensor
     for (int i = 0; i < 5; i++) {
         SENSORS[i] = new Adafruit_VL53L1X(XSHUT_PINS[i]);
@@ -65,7 +66,6 @@ void read_sensor_data() {
     // We are calculating the angle to the outside wall.
     // Initially, we assume the outside wall is on the left side of the robot.
     // However, if the left distance changes rapidly, we start tracking the right side of the robot.
-
 
     float track_x1 = f_left;
     float track_x2 = b_left;

@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Servo.h>
-#include <Controller_Main.h>
+#include <Controller.h>
 #include <Adafruit_MotorShield.h>
 
 Servo servo;
