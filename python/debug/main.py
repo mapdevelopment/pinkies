@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-serial_to_png_unlimited_mac.py
+serial_to_png_4vars_mac.py
 
-Read numeric values from a serial console and periodically save a PNG time-series graph.
+Read 4 numeric values (x y z w) from a serial console and periodically save a PNG time-series graph.
 No max points — will store all data until stopped.
 Default port: /dev/cu.usbmodem1101 (common on macOS for Arduino-like boards)
 """
@@ -24,12 +24,13 @@ import serial
 
 NUMBER_RE = re.compile(r'[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?')
 
-def parse_first_number(s: str):
-    m = NUMBER_RE.search(s)
-    if not m:
+def parse_numbers(s: str):
+    """Extract up to 4 numbers from a string like 'x y z w'."""
+    matches = NUMBER_RE.findall(s)
+    if len(matches) < 4:
         return None
     try:
-        return float(m.group(0))
+        return tuple(float(matches[i]) for i in range(4))
     except ValueError:
         return None
 
@@ -43,9 +44,9 @@ def reader_thread(ser, queue: deque, stop_event: Event):
                 s = line.decode(errors='replace').strip()
             except Exception:
                 s = str(line)
-            val = parse_first_number(s)
-            if val is not None:
-                queue.append((datetime.now(), val))
+            vals = parse_numbers(s)
+            if vals is not None:
+                queue.append((datetime.now(), *vals))
         except serial.SerialException as e:
             print("Serial error:", e, file=sys.stderr)
             stop_event.set()
@@ -56,39 +57,47 @@ def reader_thread(ser, queue: deque, stop_event: Event):
 def plot_and_save(points, outpath, title=None, dpi=150):
     if len(points) == 0:
         return
-    times, vals = zip(*points)
+    times, xs, ys, zs, ws = zip(*points)
     t0 = times[0]
-    xs = np.array([(t - t0).total_seconds() for t in times])
-    ys = np.array(vals, dtype=float)
+    t_seconds = np.array([(t - t0).total_seconds() for t in times])
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(xs, ys, linewidth=1)
+    ax.plot(t_seconds, xs, label="Error", linewidth=1)
+    ax.plot(t_seconds, ys, label="Proportional", linewidth=1)
+    ax.plot(t_seconds, zs, label="Derivative", linewidth=1)
+    ax.plot(t_seconds, ws, label="Distance", linewidth=1)
+
     ax.set_xlabel("seconds")
     ax.set_ylabel("value")
     if title:
         ax.set_title(title)
     ax.grid(True, linestyle=':', linewidth=0.5)
-    ymin, ymax = ys.min(), ys.max()
+
+    all_vals = np.array([xs, ys, zs, ws])
+    ymin, ymax = all_vals.min(), all_vals.max()
     yrange = ymax - ymin or 1.0
     ax.set_ylim(ymin - 0.1 * yrange, ymax + 0.1 * yrange)
-    ax.set_xlim(xs.min(), xs.max())
+    ax.set_xlim(t_seconds.min(), t_seconds.max())
+    ax.legend(loc="upper right")
 
     last_time_str = times[-1].strftime("%Y-%m-%d %H:%M:%S")
-    ax.annotate(f"last: {ys[-1]:.3g}\n{last_time_str}",
-                xy=(xs[-1], ys[-1]),
-                xytext=(-10, 10),
-                textcoords='offset points',
-                ha='right', va='bottom',
-                fontsize=8,
-                bbox=dict(boxstyle="round,pad=0.3", alpha=0.2))
+    ax.annotate(
+        f"last: X={xs[-1]:.3g} Y={ys[-1]:.3g} Z={zs[-1]:.3g} W={ws[-1]:.3g}\n{last_time_str}",
+        xy=(t_seconds[-1], ws[-1]),
+        xytext=(-10, 10),
+        textcoords='offset points',
+        ha='right', va='bottom',
+        fontsize=8,
+        bbox=dict(boxstyle="round,pad=0.3", alpha=0.2)
+    )
     fig.tight_layout()
     fig.savefig(outpath, dpi=dpi)
     plt.close(fig)
 
 def main():
-    p = argparse.ArgumentParser(description="Read numeric values from serial and save PNG timeseries (unlimited points).")
+    p = argparse.ArgumentParser(description="Read 4 numeric values from serial and save PNG timeseries (unlimited points).")
     p.add_argument("--port", "-p", type=str, default="/dev/cu.usbmodem1101", help="Serial port (default: /dev/cu.usbmodem1101)")
-    p.add_argument("--baud", "-b", type=int, default=9600, help="Baud rate (default 9600)")
+    p.add_argument("--baud", "-b", type=int, default=115200, help="Baud rate (default 9600)")
     p.add_argument("--out", "-o", type=str, default="graph.png", help="Output PNG file path")
     p.add_argument("--update", "-u", type=float, default=0.5, help="Seconds between PNG updates")
     p.add_argument("--title", "-t", type=str, default=None, help="Title for the plot")
@@ -96,7 +105,7 @@ def main():
     args = p.parse_args()
 
     try:
-        ser = serial.Serial(args.port, args.baud, timeout=args.timeout)
+        ser = serial.Serial(args.port, args.baud, timeout=args.timeout, dsrdtr=False)
     except serial.SerialException as e:
         print("Failed to open serial port:", e, file=sys.stderr)
         sys.exit(2)

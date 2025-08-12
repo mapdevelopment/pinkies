@@ -12,7 +12,7 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motor = AFMS.getMotor(1);
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   AFMS.begin();
 
   // Servo motor
@@ -20,15 +20,16 @@ void setup() {
 
   // Time of flight sensors
   load_sensors();
-  motor->setSpeed(0);
+  motor->setSpeed(50);
+  motor->run(FORWARD);
 }
 
 void loop() {
   // Reads and updates sensor data
-  motor->run(FORWARD);
   read_sensor_data();
-
+  delay(1000);
   float angle = turning_angle;
+  
   if (angle > MAX_RIGHT_ANGLE)
     angle = MAX_RIGHT_ANGLE;
   if (angle < MAX_LEFT_ANGLE)
