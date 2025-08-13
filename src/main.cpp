@@ -20,20 +20,13 @@ void setup() {
 
   // Time of flight sensors
   load_sensors();
-  motor->setSpeed(50);
+  motor->setSpeed(120);
   motor->run(FORWARD);
 }
 
 void loop() {
   // Reads and updates sensor data
   read_sensor_data();
-  delay(1000);
-  float angle = turning_angle;
-  
-  if (angle > MAX_RIGHT_ANGLE)
-    angle = MAX_RIGHT_ANGLE;
-  if (angle < MAX_LEFT_ANGLE)
-    angle = MAX_LEFT_ANGLE;
-
+  float angle =  constrain(turning_angle, MAX_LEFT_ANGLE, MAX_RIGHT_ANGLE);;
   servo.write(angle);
 }
