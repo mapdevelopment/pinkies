@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_VL53L1X.h>
 #include <avr/wdt.h>
+#include <Sorting.h>
 
 const int SENSOR_DISTANCE = 135;
 const double Kp = 0.2;
@@ -53,6 +54,8 @@ void load_sensors() {
 // Servo turning angle
 float turning_angle = STRAIGHT_ANGLE;
 float last_error;
+float track_buffer[10];
+int track_tracker = 0;
 
 void read_sensor_data() {
     // Real-time sensor data reading
@@ -84,8 +87,22 @@ void read_sensor_data() {
     float track_x2 = b_right;
     const float wall_angle = atan((track_x1 - track_x2) / SENSOR_DISTANCE);
     const float wall_distance = ((track_x1 + track_x2) / 2) * cos(wall_angle);
-    const float track_size = 160; //((f_left + f_right + b_left + b_right) / 2) * cos(wall_angle) + VEHICLE_WIDTH;
-    const float error = track_size / 2 - wall_distance;
+
+    // Calculating the distance between walls
+    const float size = ((f_left + f_right + b_left + b_right) / 2) * cos(wall_angle) + VEHICLE_WIDTH;
+    if (track_tracker == 9) {
+        track_tracker = 0;
+    } else {
+        track_tracker++;
+    }
+
+    track_buffer[track_tracker] = size;
+    const float track = get_dominant_cluster_average(
+        10, track_buffer, 20
+    );
+
+    // PID logic
+    const float error = track / 2 - wall_distance;
     if (!last_error) {
         last_error = error;
     }
@@ -102,7 +119,7 @@ void read_sensor_data() {
     Serial.print(" ");
     Serial.print(turning_angle);
     Serial.print(" ");
-    Serial.print(track_size);
+    Serial.print(track);
     Serial.println();
     delay(sleep_time);
 }
