@@ -5,7 +5,7 @@ using ace_sorting::quickSortMiddle;
 
 float get_dominant_cluster_average(
     const int N, 
-    const float array[],
+    float array[],
     const float tolerance
 ) {
     quickSortMiddle(array, N);

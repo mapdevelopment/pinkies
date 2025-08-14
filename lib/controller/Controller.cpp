@@ -2,12 +2,13 @@
 #include <Adafruit_VL53L1X.h>
 #include <avr/wdt.h>
 #include <Sorting.h>
+#include <Controller.h>
 
 const int SENSOR_DISTANCE = 135;
 const double Kp = 0.2;
-const double Kd = 0.2;
+const double Kd = 0.72;
 const int STRAIGHT_ANGLE = 90;
-const int VEHICLE_WIDTH = 150;
+const int VEHICLE_WIDTH = 95;
 
 // Data from sensors
 float f_left = 0, 
@@ -19,7 +20,7 @@ float f_left = 0,
 Adafruit_VL53L1X* SENSORS[5];
 const int XSHUT_PINS[5] = { 2, 3, 4, 5, 6 };
 const byte SENSOR_ADDRESS[5] = { 0x30, 0x31, 0x32, 0x33, 0x34 };
-const int MEASUREMENT_ERROR[5] = { 10, 30, 0, 0, -10  };
+const int MEASUREMENT_ERROR[5] = { 10, 30, 0, -5, 10  };
 
 bool start_sensor(int index, Adafruit_VL53L1X* sensor) {
     if (sensor->begin(SENSOR_ADDRESS[index], &Wire)) {
@@ -29,7 +30,7 @@ bool start_sensor(int index, Adafruit_VL53L1X* sensor) {
         }
 
         Serial.println(String("Pavyko paleisti sensoriu ") + index);
-        sensor->setTimingBudget(50);
+        sensor->setTimingBudget(60);
         return true;
     }
 
@@ -47,15 +48,18 @@ void load_sensors() {
             Serial.println("Nepavyko paleisti sensorio");
         }
 
-        delay(50);
+        delay(100);
     }
 }
 
 // Servo turning angle
+const size_t buffer_size = 10;
 float turning_angle = STRAIGHT_ANGLE;
+static unsigned long last_time = millis();
 float last_error;
-float track_buffer[10];
+float track_buffer[buffer_size];
 int track_tracker = 0;
+bool track_ready = false;
 
 void read_sensor_data() {
     // Real-time sensor data reading
@@ -67,14 +71,14 @@ void read_sensor_data() {
             SENSORS[i]->clearInterrupt();
         }
 
-        delay(50);
+        delay(30);
     }
 
     front = distances[3] + MEASUREMENT_ERROR[0];
     f_left = distances[4] + MEASUREMENT_ERROR[1];
     f_right = distances[2] + MEASUREMENT_ERROR[2];
     b_left = distances[1] + MEASUREMENT_ERROR[3];
-    b_right = distances[0] + MEASUREMENT_ERROR[4];    
+    b_right = constrain(distances[0] + MEASUREMENT_ERROR[4], 0, 2000);
 
     /*  PID controller
         We are calculating the angle to the outside wall.
@@ -82,7 +86,6 @@ void read_sensor_data() {
         However, if the left distance changes rapidly, we start tracking the right side of the robot.
     */
 
-    const int sleep_time = 20;
     float track_x1 = f_right;
     float track_x2 = b_right;
     const float wall_angle = atan((track_x1 - track_x2) / SENSOR_DISTANCE);
@@ -90,7 +93,7 @@ void read_sensor_data() {
 
     // Calculating the distance between walls
     const float size = ((f_left + f_right + b_left + b_right) / 2) * cos(wall_angle) + VEHICLE_WIDTH;
-    if (track_tracker == 9) {
+    if (track_tracker == (buffer_size - 1)) {
         track_tracker = 0;
     } else {
         track_tracker++;
@@ -98,28 +101,41 @@ void read_sensor_data() {
 
     track_buffer[track_tracker] = size;
     const float track = get_dominant_cluster_average(
-        10, track_buffer, 20
+        buffer_size, track_buffer, 20
     );
+    
+    if (track > 0 && !track_ready) 
+        track_ready = true;
+
 
     // PID logic
-    const float error = track / 2 - wall_distance;
+    const float error = track / 2 - wall_distance - VEHICLE_WIDTH/2;
     if (!last_error) {
         last_error = error;
     }
 
-    const float derivative_delta = (error - last_error) / sleep_time;
+    unsigned long now = millis();
+    float delta_t = (now - last_time) / 1000.0f;
+    last_time = now;
+
+    const float derivative_delta = (error - last_error) / delta_t;
     last_error = error;
+
     turning_angle = STRAIGHT_ANGLE 
         - Kp * error
         - Kd * derivative_delta;
     
-    Serial.print(Kp * error);
+    front *= cos(wall_angle);
+    
+    //Serial.print(Kp * error);
+    //Serial.print(Kd * derivative_delta);
+    Serial.print(front);
     Serial.print(" ");
-    Serial.print(Kd * derivative_delta);
+    Serial.print(0);
     Serial.print(" ");
-    Serial.print(turning_angle);
+        Serial.print(0);
     Serial.print(" ");
-    Serial.print(track);
+    Serial.print(front);
     Serial.println();
-    delay(sleep_time);
+    delay(30);
 }
