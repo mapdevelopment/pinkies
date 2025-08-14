@@ -6,6 +6,7 @@
 Servo servo;
 const int MAX_LEFT_ANGLE = 0;
 const int MAX_RIGHT_ANGLE = 180;
+const int BACK_DISTANCE = 200;
 
 // Engine configuration
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -20,13 +21,37 @@ void setup() {
 
   // Time of flight sensors
   load_sensors();
-  motor->setSpeed(120);
-  motor->run(FORWARD);
 }
 
 void loop() {
   // Reads and updates sensor data
   read_sensor_data();
-  float angle =  constrain(turning_angle, MAX_LEFT_ANGLE, MAX_RIGHT_ANGLE);;
+
+  if (!track_ready) {
+    motor->run(RELEASE);
+    return;
+  }
+
+  motor->run(FORWARD);
+  motor->setSpeed(100);
+  float angle = constrain(turning_angle, MAX_LEFT_ANGLE, MAX_RIGHT_ANGLE);
+
+  // Turning logic
+  if ((f_left + f_right) > 1200) {
+    servo.write(angle);
+    return;
+  }
+
+  angle = MAX_LEFT_ANGLE;
+  if (f_left > f_right) {
+    angle = MAX_RIGHT_ANGLE;
+  }
+
+  if (front <= BACK_DISTANCE) {
+    motor->run(BACKWARD);
+    angle *= -1;
+  }
+
   servo.write(angle);
+  delay(500);
 }

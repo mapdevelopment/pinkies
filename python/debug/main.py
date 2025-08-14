@@ -61,9 +61,9 @@ def plot_and_save_xyz(points, outpath, title=None, dpi=150):
     t_seconds = np.array([(t - t0).total_seconds() for t in times])
 
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.plot(t_seconds, xs, label="turning_angle", linewidth=1)
-    ax.plot(t_seconds, ys, label="wall_distance", linewidth=1)
-    ax.plot(t_seconds, zs, label="error", linewidth=1)
+    ax.plot(t_seconds, xs, label="P", linewidth=1)
+    ax.plot(t_seconds, ys, label="D", linewidth=1)
+    ax.plot(t_seconds, zs, label="Angle", linewidth=1)
 
     ax.set_xlabel("seconds")
     ax.set_ylabel("value")
