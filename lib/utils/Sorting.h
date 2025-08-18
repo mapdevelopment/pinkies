@@ -21,7 +21,7 @@ float get_dominant_cluster_average(
             curr_sum += array[i];
             curr_count++;
         } else {
-            if (curr_count > best_count) {
+            if (curr_count > best_count && array[i-1] > 0.0f) {
                 best_sum = curr_sum;
                 best_count = curr_count;
             }

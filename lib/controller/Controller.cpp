@@ -22,6 +22,14 @@ const int XSHUT_PINS[5] = { 2, 3, 4, 5, 6 };
 const byte SENSOR_ADDRESS[5] = { 0x30, 0x31, 0x32, 0x33, 0x34 };
 const int MEASUREMENT_ERROR[5] = { 10, 30, 0, -5, 10  };
 
+int updateWithErrorCheck(int newValue, int error) {
+    if (newValue > error) {
+        return newValue - error;
+    }
+
+    return newValue; 
+}
+
 bool start_sensor(int index, Adafruit_VL53L1X* sensor) {
     if (sensor->begin(SENSOR_ADDRESS[index], &Wire)) {
         if (!sensor->startRanging()) {
@@ -57,7 +65,7 @@ const size_t buffer_size = 10;
 float turning_angle = STRAIGHT_ANGLE;
 static unsigned long last_time = millis();
 float last_error;
-float track_buffer[buffer_size];
+float track_buffer[buffer_size] = { 0 };
 int track_tracker = 0;
 bool track_ready = false;
 
@@ -74,16 +82,14 @@ void read_sensor_data() {
         delay(30);
     }
 
-    front = distances[3] + MEASUREMENT_ERROR[0];
-    f_left = distances[4] + MEASUREMENT_ERROR[1];
-    f_right = distances[2] + MEASUREMENT_ERROR[2];
-    b_left = distances[1] + MEASUREMENT_ERROR[3];
-    b_right = constrain(distances[0] + MEASUREMENT_ERROR[4], 0, 2000);
+    front   = updateWithErrorCheck(distances[3], MEASUREMENT_ERROR[0]);
+    f_left  = updateWithErrorCheck(distances[4], MEASUREMENT_ERROR[1]);
+    f_right = updateWithErrorCheck(distances[2], MEASUREMENT_ERROR[2]);
+    b_left  = updateWithErrorCheck(distances[1], MEASUREMENT_ERROR[3]);
+    b_right = updateWithErrorCheck(distances[0], MEASUREMENT_ERROR[4]);
 
     /*  PID controller
         We are calculating the angle to the outside wall.
-        Initially, we assume the outside wall is on the left side of the robot.
-        However, if the left distance changes rapidly, we start tracking the right side of the robot.
     */
 
     float track_x1 = f_right;
@@ -124,18 +130,4 @@ void read_sensor_data() {
     turning_angle = STRAIGHT_ANGLE 
         - Kp * error
         - Kd * derivative_delta;
-    
-    front *= cos(wall_angle);
-    
-    //Serial.print(Kp * error);
-    //Serial.print(Kd * derivative_delta);
-    Serial.print(front);
-    Serial.print(" ");
-    Serial.print(0);
-    Serial.print(" ");
-        Serial.print(0);
-    Serial.print(" ");
-    Serial.print(front);
-    Serial.println();
-    delay(30);
 }

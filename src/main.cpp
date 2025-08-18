@@ -3,10 +3,12 @@
 #include <Controller.h>
 #include <Adafruit_MotorShield.h>
 
+#define FAR_DISTANCE -1
+
 Servo servo;
 const int MAX_LEFT_ANGLE = 0;
 const int MAX_RIGHT_ANGLE = 180;
-const int BACK_DISTANCE = 200;
+const int BACK_DISTANCE = 350;
 
 // Engine configuration
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
@@ -36,22 +38,36 @@ void loop() {
   motor->setSpeed(100);
   float angle = constrain(turning_angle, MAX_LEFT_ANGLE, MAX_RIGHT_ANGLE);
 
+  Serial.println(String(f_left) + " " + String(f_right));
+
   // Turning logic
-  if ((f_left + f_right) > 1200) {
+  if ((f_left + f_right) < 1200 
+    && f_left != FAR_DISTANCE 
+    && f_right != FAR_DISTANCE
+  ) {
     servo.write(angle);
     return;
   }
 
-  angle = MAX_LEFT_ANGLE;
-  if (f_left > f_right) {
-    angle = MAX_RIGHT_ANGLE;
+  angle = MAX_RIGHT_ANGLE;
+  if (
+    ((f_left > f_right) && f_right != -1) || 
+    f_left == FAR_DISTANCE
+  ) {
+    angle = MAX_LEFT_ANGLE;
   }
 
-  if (front <= BACK_DISTANCE) {
-    motor->run(BACKWARD);
-    angle *= -1;
-  }
+  Serial.println((f_left > f_right));
 
   servo.write(angle);
-  delay(500);
+  if (front < BACK_DISTANCE) {
+    servo.write(
+      angle == MAX_LEFT_ANGLE ? MAX_RIGHT_ANGLE : MAX_LEFT_ANGLE
+    );
+    motor->run(BACKWARD);
+    delay(1400);
+    motor->run(FORWARD);
+    servo.write(angle);
+    delay(2300);
+  }
 }
