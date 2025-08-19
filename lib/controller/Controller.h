@@ -1,13 +1,20 @@
-void read_sensor_data();
-void load_sensors();
+#ifndef CONTROLLER_H
 
+// Function prototypes
+void read_sensor_data(void);
+void load_sensors(void);
+
+// Constants
 #define MOTOR_SPEED 200
 
+// Global variables
 extern float turning_angle;
 extern bool track_ready;
 
-extern float f_left, 
-    f_right, 
-    b_left, 
-    b_right, 
-    front;
+extern float f_left;
+extern float f_right;
+extern float b_left;
+extern float b_right;
+extern float front;
+
+#endif // CONTROL_H

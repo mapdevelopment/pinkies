@@ -1,12 +1,15 @@
+#ifndef STATEMANAGER_H
+#define STATEMANAGER_H
+
 #include <Arduino.h>
+
+// Pin definition
 #define SENSOR_STATE_INDICATOR 39
 
-bool ready_sensor[100] = { 0 };
-void set_sensor_state(uint8_t sensor, uint8_t state) {
-    if (!ready_sensor[sensor]) {
-        pinMode(sensor, OUTPUT);
-        ready_sensor[sensor] = true;
-    }
+// Globals
+extern bool ready_sensor[100];
 
-    digitalWrite(sensor, state);
-}
+// Functions
+void set_sensor_state(uint8_t sensor, uint8_t state);
+
+#endif // STATEMANAGER_H
