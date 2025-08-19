@@ -57,8 +57,6 @@ void loop() {
     angle = MAX_LEFT_ANGLE;
   }
 
-  Serial.println((f_left > f_right));
-
   servo.write(angle);
   if (front < BACK_DISTANCE) {
     servo.write(
