@@ -1,6 +1,8 @@
 void read_sensor_data();
 void load_sensors();
 
+#define MOTOR_SPEED 200
+
 extern float turning_angle;
 extern bool track_ready;
 
