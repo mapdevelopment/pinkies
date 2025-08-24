@@ -1,6 +1,7 @@
 import cv2, time
 import numpy as np
 from scripts.camera import Camera, IS_RASPBERRY, HEIGHT, WIDTH
+from scripts.pillar import Pillar
 
 # HSV color ranges 
 lower_green = np.array([65, 120, 75]) 
@@ -16,20 +17,7 @@ video_name = 'output.mp4'
 writer = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc('M','J','P','G'), 15, (WIDTH, HEIGHT))
 
 # Focal length
-F = (130 * 30) / 4.5
-
-class Pillar:
-    def __init__(self, x, y, w, h, cx, cy, area, color = 0):
-        # 0 - red, 1 - green
-        self.x = x
-        self.y = y
-        self.w = w
-        self.h = h
-        self.cx = cx
-        self.cy = cy,
-        self.area = area
-        self.color = color
-        pass
+FOCAL_LENGTH = (130 * 30) / 4.5
 
 largest_pillar = Pillar(0, 0, 0, 0, 0, 0, 0, 0)
 
@@ -72,8 +60,8 @@ while True:
     
     # only x coordinate is important to us
     offset_x = largest_pillar.cx - WIDTH / 2
-    distance_y = (4.5 * F) / (largest_pillar.w or 1)
-    distance_x = offset_x * distance_y / (F or 1)
+    distance_y = (4.5 * FOCAL_LENGTH) / (largest_pillar.w or 1)
+    distance_x = offset_x * distance_y / (FOCAL_LENGTH or 1)
     print(largest_pillar.w, distance_y, distance_x)
 
     cv2.line(img, (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), (255, 255, 255), 3)
