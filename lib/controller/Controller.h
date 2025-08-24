@@ -16,5 +16,6 @@ extern float f_right;
 extern float b_left;
 extern float b_right;
 extern float front;
+extern float wall_angle;
 
 #endif // CONTROL_H

@@ -16,7 +16,8 @@ float f_left = 0,
     f_right = 0, 
     b_left = 0, 
     b_right = 0, 
-    front = 0;
+    front = 0,
+    wall_angle = STRAIGHT_ANGLE;
 
 Adafruit_VL53L1X* SENSORS[5];
 const int XSHUT_PINS[5] = { 2, 3, 4, 5, 6 };
@@ -108,7 +109,7 @@ void read_sensor_data() {
 
     float track_x1 = f_right;
     float track_x2 = b_right;
-    const float wall_angle = atan((track_x1 - track_x2) / SENSOR_DISTANCE);
+    wall_angle = atan((track_x1 - track_x2) / SENSOR_DISTANCE);
     const float wall_distance = ((track_x1 + track_x2) / 2) * cos(wall_angle);
 
     // Calculating the distance between walls
@@ -144,6 +145,4 @@ void read_sensor_data() {
     turning_angle = STRAIGHT_ANGLE 
         - Kp * error
         - Kd * derivative_delta;
-
-    Serial.println(String(0) + " " + error +" 0 " + 0);
 }

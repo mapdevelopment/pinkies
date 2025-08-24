@@ -2,17 +2,20 @@
 #include <Servo.h>
 #include <Controller.h>
 #include <Adafruit_MotorShield.h>
-
+#include <SoftwareSerial.h>
 #define FAR_DISTANCE -1
 
 Servo servo;
 const int MAX_LEFT_ANGLE = 0;
 const int MAX_RIGHT_ANGLE = 180;
-const int BACK_DISTANCE = 200;
+const int BACK_DISTANCE = 300;
 
 // Engine configuration
 Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
 Adafruit_DCMotor *motor = AFMS.getMotor(1);
+
+// Serial communication
+SoftwareSerial mySerial(19, 18);
 
 void setup() {
   Serial.begin(115200);
@@ -67,16 +70,25 @@ void loop() {
   );
 
   motor->run(BACKWARD);
-  delay(2200);
+  delay(1200);
+    Serial.println(front);
+    Serial.println(wall_angle*60);
+    Serial.println();
 
   // let's fetch new sensor data 74cm
   read_sensor_data();
 
-  if (front < 600) {
-    return;
+  if (front > 600) {
+    //return;
   }
 
   motor->run(FORWARD);
   servo.write(angle);
-  delay(4000);
+  while (
+    abs(wall_angle) > 0.1
+    && front > BACK_DISTANCE
+  ) {
+    read_sensor_data();
+    delay(20);
+  }
 }
